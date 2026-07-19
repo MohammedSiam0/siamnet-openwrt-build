@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HotspotOS - Login</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <div class="logo">
+            <img src="/hotspotos/logo.png" alt="HotspotOS" onerror="this.style.display='none'">
+            <h1>HotspotOS</h1>
+        </div>
+
+        <div class="welcome">
+            <h2>Welcome to KolakTek Hotspot</h2>
+            <p>Please login to access the internet</p>
+        </div>
+
+        <div class="login-form">
+            <div class="login-tabs">
+                <button class="tab-btn active" onclick="showTab('voucher')">Voucher</button>
+                <button class="tab-btn" onclick="showTab('username')">Username</button>
+                <button class="tab-btn" onclick="showTab('trial')">Free Trial</button>
+            </div>
+
+            <div id="voucher-tab" class="tab-content active">
+                <form action="/hotspotos/portal/auth" method="POST">
+                    <input type="hidden" name="type" value="voucher">
+                    <div class="form-group">
+                        <label>Voucher Code</label>
+                        <input type="text" name="voucher" placeholder="Enter voucher code" required>
+                    </div>
+                    <button type="submit" class="btn-login">Connect</button>
+                </form>
+            </div>
+
+            <div id="username-tab" class="tab-content">
+                <form action="/hotspotos/portal/auth" method="POST">
+                    <input type="hidden" name="type" value="username">
+                    <div class="form-group">
+                        <label>Username</label>
+                        <input type="text" name="username" placeholder="Enter username" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Password</label>
+                        <input type="password" name="password" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn-login">Connect</button>
+                </form>
+            </div>
+
+            <div id="trial-tab" class="tab-content">
+                <form action="/hotspotos/portal/auth" method="POST">
+                    <input type="hidden" name="type" value="trial">
+                    <p class="trial-info">Get 10 minutes of free internet access</p>
+                    <button type="submit" class="btn-login btn-trial">Start Free Trial</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Powered by HotspotOS v1.0</p>
+            <p>KolakTek Vetch-NB403</p>
+        </div>
+    </div>
+
+    <script>
+        function showTab(tabName) {
+            document.querySelectorAll('.tab-content').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+        }
+    </script>
+</body>
+</html>

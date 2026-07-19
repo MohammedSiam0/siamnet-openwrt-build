@@ -1,0 +1,20 @@
+#!/bin/sh /etc/rc.common
+
+START=95
+STOP=5
+
+USE_PROCD=1
+
+start_service() {
+    # Create backup directory
+    mkdir -p /etc/hotspotos/backups
+
+    # Schedule daily backups
+    (crontab -l 2>/dev/null | grep -v "backup.sh create"; echo "0 2 * * * /usr/lib/hotspotos/backup/backup.sh create >/dev/null 2>&1") | crontab -
+    /etc/init.d/cron restart
+}
+
+stop_service() {
+    # Remove scheduled backups
+    (crontab -l 2>/dev/null | grep -v "backup.sh create") | crontab -
+}

@@ -1,0 +1,5 @@
+# HotspotOS TTL Post-Routing Rules
+# This file is loaded by firewall4 after ruleset
+
+# TTL rules are managed by ttl-manager service
+# Do not edit manually

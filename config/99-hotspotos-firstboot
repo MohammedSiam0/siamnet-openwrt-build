@@ -1,0 +1,54 @@
+#!/bin/sh
+# HotspotOS First Boot Configuration
+# Runs automatically on first boot after installation
+
+echo "[HotspotOS] Initializing first boot configuration..."
+
+# Create required directories
+mkdir -p /etc/hotspotos
+mkdir -p /etc/hotspotos/backups
+mkdir -p /var/log
+mkdir -p /var/run
+mkdir -p /www/hotspotos/portal
+mkdir -p /tmp/hotspotos
+
+# Set permissions
+chmod 755 /etc/init.d/hotspotos
+chmod 755 /etc/init.d/external-hotspot-client
+chmod 755 /etc/init.d/ttl-manager
+chmod 755 /etc/init.d/internal-hotspot
+chmod 755 /etc/init.d/captive-portal-manager
+chmod 755 /etc/init.d/free-trial-manager
+chmod 755 /etc/init.d/backup-manager
+chmod 755 /usr/lib/hotspotos/*/*.sh
+chmod 755 /usr/sbin/hotspotos
+
+# Configure system hostname
+uci set system.@system[0].hostname='HotspotOS'
+uci commit system
+
+# Configure network (LAN)
+uci set network.lan.ipaddr='192.168.1.20'
+uci set network.lan.netmask='255.255.255.0'
+uci commit network
+
+# Configure uhttpd for HotspotOS web interface
+uci set uhttpd.main.listen_http='0.0.0.0:8080'
+uci set uhttpd.main.listen_https='0.0.0.0:443'
+uci set uhttpd.main.home='/www'
+uci commit uhttpd
+
+# Enable all HotspotOS services
+for service in hotspotos external-hotspot-client ttl-manager internal-hotspot captive-portal-manager free-trial-manager backup-manager; do
+    if [ -f "/etc/init.d/$service" ]; then
+        /etc/init.d/$service enable
+        echo "[HotspotOS] Service enabled: $service"
+    fi
+done
+
+# Restart network and web server
+/etc/init.d/network restart
+/etc/init.d/uhttpd restart
+
+echo "[HotspotOS] First boot configuration completed!"
+echo "[HotspotOS] Access: http://192.168.1.20:8080"

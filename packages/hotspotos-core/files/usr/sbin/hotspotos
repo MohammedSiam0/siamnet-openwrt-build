@@ -1,0 +1,72 @@
+#!/bin/sh
+# HotspotOS Main Binary
+# Entry point for HotspotOS framework
+
+. /lib/functions.sh
+
+VERSION="1.0.0"
+
+show_banner() {
+    echo "=================================="
+    echo "  HotspotOS v${VERSION}"
+    echo "  KolakTek Vetch-NB403"
+    echo "=================================="
+}
+
+show_help() {
+    echo "Usage: hotspotos [command]"
+    echo ""
+    echo "Commands:"
+    echo "  daemon          Run as daemon"
+    echo "  status          Show system status"
+    echo "  setup           Run quick setup wizard"
+    echo "  config          Configuration management"
+    echo "  service         Service management"
+    echo "  monitor         Monitor management"
+    echo "  api             API calls"
+    echo "  version         Show version"
+    echo "  help            Show this help"
+}
+
+case "$1" in
+    daemon)
+        show_banner
+        echo "Starting HotspotOS daemon..."
+        while true; do
+            sleep 60
+        done
+        ;;
+    status)
+        /usr/lib/hotspotos/api.sh status
+        ;;
+    setup)
+        echo "Quick Setup Wizard"
+        echo "=================="
+        ;;
+    config)
+        shift
+        /usr/lib/hotspotos/config.sh "$@"
+        ;;
+    service)
+        shift
+        /usr/lib/hotspotos/service.sh "$@"
+        ;;
+    monitor)
+        shift
+        /usr/lib/hotspotos/monitor.sh "$@"
+        ;;
+    api)
+        shift
+        /usr/lib/hotspotos/api.sh "$@"
+        ;;
+    version)
+        echo "HotspotOS v${VERSION}"
+        ;;
+    help|--help|-h)
+        show_help
+        ;;
+    *)
+        show_banner
+        show_help
+        ;;
+esac

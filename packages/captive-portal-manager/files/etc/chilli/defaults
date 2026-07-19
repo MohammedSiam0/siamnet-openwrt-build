@@ -1,0 +1,21 @@
+# CoovaChilli defaults for HotspotOS
+HS_LANIF=wlan0
+HS_NETWORK=192.168.10.0
+HS_NETMASK=255.255.255.0
+HS_UAMLISTEN=192.168.10.1
+HS_UAMPORT=3990
+HS_UAMUIPORT=4990
+HS_DNS1=8.8.8.8
+HS_DNS2=8.8.4.4
+HS_NASID=hotspotos
+HS_RADIUS=localhost
+HS_RADIUS2=localhost
+HS_RADSECRET=testing123
+HS_UAMSECRET=
+HS_UAMALIASNAME=chilli
+HS_UAMSERVER=
+HS_UAMFORMAT=http://\$HS_UAMLISTEN:\$HS_UAMPORT/www/hotspotos/portal/login.html
+HS_UAMHOMEPAGE=
+HS_MODE=hotspot
+HS_TYPE=chillispot
+HS_WISPRLOGIN=http://\$HS_UAMLISTEN:\$HS_UAMPORT/www/hotspotos/portal/login.html

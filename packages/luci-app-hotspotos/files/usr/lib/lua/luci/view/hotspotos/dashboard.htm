@@ -1,0 +1,82 @@
+<%+header%>
+
+<div class="cbi-map">
+    <h2>HotspotOS Dashboard</h2>
+    <div class="cbi-map-descr">Welcome to HotspotOS v1.0 - KolakTek Vetch-NB403</div>
+
+    <div class="cbi-section">
+        <h3>System Status</h3>
+        <div class="table">
+            <div class="tr">
+                <div class="td left" width="33%">Device</div>
+                <div class="td left">KolakTek Vetch-NB403</div>
+            </div>
+            <div class="tr">
+                <div class="td left">Platform</div>
+                <div class="td left">lantiq/xrx200</div>
+            </div>
+            <div class="tr">
+                <div class="td left">OpenWrt Version</div>
+                <div class="td left">22.03</div>
+            </div>
+            <div class="tr">
+                <div class="td left">Kernel</div>
+                <div class="td left">5.10.156</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cbi-section">
+        <h3>Network Status</h3>
+        <div class="table">
+            <div class="tr">
+                <div class="td left" width="33%">LAN IP</div>
+                <div class="td left">192.168.1.20:8080</div>
+            </div>
+            <div class="tr">
+                <div class="td left">WAN Status</div>
+                <div class="td left" id="wan-status">Loading...</div>
+            </div>
+            <div class="tr">
+                <div class="td left">External Hotspot</div>
+                <div class="td left" id="hotspot-status">Loading...</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cbi-section">
+        <h3>Quick Actions</h3>
+        <div class="cbi-value">
+            <input type="button" class="cbi-button cbi-button-action" value="Quick Setup" onclick="location.href='<%=url('admin/hotspotos/setup')%>'" />
+            <input type="button" class="cbi-button cbi-button-apply" value="Restart Services" onclick="restartServices()" />
+            <input type="button" class="cbi-button cbi-button-reset" value="Reboot Router" onclick="rebootRouter()" />
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+function restartServices() {
+    if (confirm('Restart all HotspotOS services?')) {
+        XHR.get('<%=url('admin/hotspotos/api')%>', {cmd: 'service restart'}, function(x, data) {
+            alert('Services restarted');
+        });
+    }
+}
+
+function rebootRouter() {
+    if (confirm('Reboot the router?')) {
+        XHR.get('<%=url('admin/hotspotos/api')%>', {cmd: 'reboot'}, function(x, data) {
+            alert('Router is rebooting...');
+        });
+    }
+}
+
+// Auto-refresh status
+setInterval(function() {
+    XHR.get('<%=url('admin/hotspotos/status')%>', null, function(x, data) {
+        document.getElementById('wan-status').innerHTML = data.network.wan;
+    });
+}, 5000);
+</script>
+
+<%+footer%>
