@@ -29,25 +29,16 @@ jobs:
     runs-on: ubuntu-22.04
 
     steps:
-    # ============================================
-    # Step 1: Checkout repository
-    # ============================================
     - name: Checkout code
       uses: actions/checkout@v4
       with:
         fetch-depth: 0
 
-    # ============================================
-    # Step 2: Setup environment
-    # ============================================
     - name: Setup build environment
       run: |
         sudo apt-get update
-        sudo apt-get install -y           build-essential           libncurses5-dev           gawk           git           subversion           libssl-dev           gettext           zlib1g-dev           swig           unzip           time           rsync           wget           curl           python3           python3-distutils           libelf-dev           ecj           fastjar           java-propose-classpath           libncursesw5-dev           libtinfo5           xsltproc           mkisofs           binutils           bzip2           ccache           diffutils           file           g++           gcc           make           patch           perl           python2.7           tar           util-linux           xz-utils
+        sudo apt-get install -y build-essential libncurses5-dev gawk git subversion libssl-dev gettext zlib1g-dev swig unzip time rsync wget curl python3 python3-distutils libelf-dev ecj fastjar java-propose-classpath libncursesw5-dev libtinfo5 xsltproc mkisofs binutils bzip2 ccache diffutils file g++ gcc make patch perl python2.7 tar util-linux xz-utils
 
-    # ============================================
-    # Step 3: Cache SDK & ImageBuilder
-    # ============================================
     - name: Cache OpenWrt SDK
       uses: actions/cache@v3
       id: cache-sdk
@@ -57,185 +48,111 @@ jobs:
           ~/openwrt-imagebuilder
         key: ${{ env.OPENWRT_VERSION }}-${{ env.TARGET }}-${{ env.SUBTARGET }}-sdk
 
-    # ============================================
-    # Step 4: Download OpenWrt SDK
-    # ============================================
     - name: Download OpenWrt SDK
       if: steps.cache-sdk.outputs.cache-hit != 'true'
       run: |
         mkdir -p ~/openwrt-build
         cd ~/openwrt-build
-
         SDK_URL="https://downloads.openwrt.org/releases/${{ env.OPENWRT_VERSION }}/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/openwrt-sdk-${{ env.OPENWRT_VERSION }}-${{ env.TARGET }}-${{ env.SUBTARGET }}_gcc-11.2.0_musl.Linux-x86_64.tar.xz"
-
         echo "Downloading SDK from: $SDK_URL"
         wget -q --show-progress "$SDK_URL" -O sdk.tar.xz
         tar -xf sdk.tar.xz
         mv openwrt-sdk-* ~/openwrt-sdk
         rm sdk.tar.xz
 
-    # ============================================
-    # Step 5: Download ImageBuilder
-    # ============================================
     - name: Download ImageBuilder
       if: steps.cache-sdk.outputs.cache-hit != 'true'
       run: |
         cd ~/openwrt-build
-
         IB_URL="https://downloads.openwrt.org/releases/${{ env.OPENWRT_VERSION }}/targets/${{ env.TARGET }}/${{ env.SUBTARGET }}/openwrt-imagebuilder-${{ env.OPENWRT_VERSION }}-${{ env.TARGET }}-${{ env.SUBTARGET }}.Linux-x86_64.tar.xz"
-
         echo "Downloading ImageBuilder from: $IB_URL"
         wget -q --show-progress "$IB_URL" -O imagebuilder.tar.xz
         tar -xf imagebuilder.tar.xz
         mv openwrt-imagebuilder-* ~/openwrt-imagebuilder
         rm imagebuilder.tar.xz
 
-    # ============================================
-    # Step 6: Setup packages in SDK
-    # ============================================
     - name: Setup HotspotOS packages
       run: |
-        # Copy packages to SDK
         cp -r packages/* ~/openwrt-sdk/package/
-
-        # Update feeds
         cd ~/openwrt-sdk
         ./scripts/feeds update -a
         ./scripts/feeds install -a
 
-    # ============================================
-    # Step 7: Build IPK packages
-    # ============================================
     - name: Build IPK packages
       run: |
         cd ~/openwrt-sdk
         make defconfig
-
         PACKAGES="hotspotos-core external-hotspot-client ttl-manager internal-hotspot captive-portal-manager free-trial-manager luci-app-hotspotos backup-manager"
-
         for pkg in $PACKAGES; do
           echo "========================================"
           echo "Building: $pkg"
           echo "========================================"
           make package/$pkg/compile V=s -j$(nproc) || make package/$pkg/compile V=s -j1
         done
-
-        # Collect IPK files
         mkdir -p ~/ipk-output
         find ~/openwrt-sdk/bin -name "*.ipk" -exec cp {} ~/ipk-output/ \;
-
         echo "Built IPK files:"
         ls -lh ~/ipk-output/
 
-    # ============================================
-    # Step 8: Build firmware with ImageBuilder
-    # ============================================
     - name: Build firmware image
       run: |
         cd ~/openwrt-imagebuilder
-
-        # Create custom files directory
         mkdir -p files/etc/config
         mkdir -p files/etc/init.d
         mkdir -p files/usr/lib/hotspotos
         mkdir -p files/www/hotspotos
-
-        # Copy custom configuration
-        cp -r packages/hotspotos-core/files/etc/config/* files/etc/config/ 2>/dev/null || true
-        cp -r packages/hotspotos-core/files/etc/init.d/* files/etc/init.d/ 2>/dev/null || true
-        cp -r packages/hotspotos-core/files/usr/lib/hotspotos/* files/usr/lib/hotspotos/ 2>/dev/null || true
-        cp -r packages/captive-portal-manager/files/www/hotspotos/* files/www/hotspotos/ 2>/dev/null || true
-
-        # Package list
+        cp -r $GITHUB_WORKSPACE/packages/hotspotos-core/files/etc/config/* files/etc/config/ 2>/dev/null || true
+        cp -r $GITHUB_WORKSPACE/packages/hotspotos-core/files/etc/init.d/* files/etc/init.d/ 2>/dev/null || true
+        cp -r $GITHUB_WORKSPACE/packages/hotspotos-core/files/usr/lib/hotspotos/* files/usr/lib/hotspotos/ 2>/dev/null || true
+        cp -r $GITHUB_WORKSPACE/packages/captive-portal-manager/files/www/hotspotos/* files/www/hotspotos/ 2>/dev/null || true
         HOTSPOTOS_PKGS="hotspotos-core external-hotspot-client ttl-manager internal-hotspot captive-portal-manager free-trial-manager luci-app-hotspotos backup-manager"
         BASE_PKGS="luci luci-ssl uhttpd uhttpd-mod-ubus rpcd rpcd-mod-file hostapd dnsmasq firewall4 nftables kmod-nft-core kmod-nft-nat coova-chilli sqlite3-cli curl libopenssl"
-
-        # Copy built IPKs to ImageBuilder packages directory
         mkdir -p packages
         cp ~/ipk-output/*.ipk packages/ 2>/dev/null || true
+        make image PROFILE="${{ env.DEVICE }}" PACKAGES="$HOTSPOTOS_PKGS $BASE_PKGS" FILES="files" BIN_DIR="~/firmware-output" DISABLED_SERVICES=""
 
-        # Build image
-        make image           PROFILE="${{ env.DEVICE }}"           PACKAGES="$HOTSPOTOS_PKGS $BASE_PKGS"           FILES="files"           BIN_DIR="~/firmware-output"           DISABLED_SERVICES=""
-
-    # ============================================
-    # Step 9: Create release package
-    # ============================================
     - name: Create release package
       run: |
         mkdir -p ~/release
-
-        # Copy firmware
         cp ~/firmware-output/*.bin ~/release/ 2>/dev/null || true
         cp ~/firmware-output/*.img ~/release/ 2>/dev/null || true
-
-        # Copy IPKs
         mkdir -p ~/release/packages
         cp ~/ipk-output/*.ipk ~/release/packages/
-
-        # Create info file
-        cat > ~/release/BUILD_INFO.txt <<EOF
-HotspotOS Router Modification Project v1.0
-==========================================
-Build Date: $(date -u +"%Y-%m-%d %H:%M:%S UTC")
-Git Commit: ${{ github.sha }}
-OpenWrt Version: ${{ env.OPENWRT_VERSION }}
-Target: ${{ env.TARGET }}/${{ env.SUBTARGET }}
-Device: ${{ env.DEVICE }}
-
-Files:
-$(ls -1 ~/release/)
-$(ls -1 ~/release/packages/)
-EOF
-
-        # Create install script
-        cat > ~/release/install.sh <<'EOF'
-#!/bin/sh
-# HotspotOS Installation Script
-
-echo "=================================="
-echo "  HotspotOS v1.0 Installation"
-echo "=================================="
-echo ""
-
-# Check OpenWrt
-if [ ! -f /etc/openwrt_release ]; then
-    echo "ERROR: Must run on OpenWrt"
-    exit 1
-fi
-
-# Install packages
-echo "Installing HotspotOS packages..."
-for pkg in packages/*.ipk; do
-    [ -f "$pkg" ] && opkg install "$pkg"
-done
-
-# Enable services
-echo ""
-echo "Enabling services..."
-for svc in hotspotos external-hotspot-client ttl-manager internal-hotspot captive-portal-manager free-trial-manager backup-manager; do
-    /etc/init.d/$svc enable 2>/dev/null && echo "  + $svc enabled"
-done
-
-# Start
-echo ""
-echo "Starting HotspotOS..."
-/etc/init.d/hotspotos start
-
-echo ""
-echo "=================================="
-echo "  Installation Complete!"
-echo "=================================="
-echo "Access: http://192.168.1.20:8080"
-EOF
+        echo "HotspotOS Router Modification Project v1.0" > ~/release/BUILD_INFO.txt
+        echo "Build Date: $(date -u +%Y-%m-%d-%H:%M:%S-UTC)" >> ~/release/BUILD_INFO.txt
+        echo "Git Commit: ${{ github.sha }}" >> ~/release/BUILD_INFO.txt
+        echo "OpenWrt Version: ${{ env.OPENWRT_VERSION }}" >> ~/release/BUILD_INFO.txt
+        echo "Target: ${{ env.TARGET }}/${{ env.SUBTARGET }}" >> ~/release/BUILD_INFO.txt
+        echo "Device: ${{ env.DEVICE }}" >> ~/release/BUILD_INFO.txt
+        echo '#!/bin/sh' > ~/release/install.sh
+        echo 'echo "=================================="' >> ~/release/install.sh
+        echo 'echo "  HotspotOS v1.0 Installation"' >> ~/release/install.sh
+        echo 'echo "=================================="' >> ~/release/install.sh
+        echo 'if [ ! -f /etc/openwrt_release ]; then' >> ~/release/install.sh
+        echo '    echo "ERROR: Must run on OpenWrt"' >> ~/release/install.sh
+        echo '    exit 1' >> ~/release/install.sh
+        echo 'fi' >> ~/release/install.sh
+        echo 'echo "Installing HotspotOS packages..."' >> ~/release/install.sh
+        echo 'for pkg in packages/*.ipk; do' >> ~/release/install.sh
+        echo '    [ -f "$pkg" ] && opkg install "$pkg"' >> ~/release/install.sh
+        echo 'done' >> ~/release/install.sh
+        echo 'echo ""' >> ~/release/install.sh
+        echo 'echo "Enabling services..."' >> ~/release/install.sh
+        echo 'for svc in hotspotos external-hotspot-client ttl-manager internal-hotspot captive-portal-manager free-trial-manager backup-manager; do' >> ~/release/install.sh
+        echo '    /etc/init.d/$svc enable 2>/dev/null && echo "  + $svc enabled"' >> ~/release/install.sh
+        echo 'done' >> ~/release/install.sh
+        echo 'echo ""' >> ~/release/install.sh
+        echo 'echo "Starting HotspotOS..."' >> ~/release/install.sh
+        echo '/etc/init.d/hotspotos start' >> ~/release/install.sh
+        echo 'echo ""' >> ~/release/install.sh
+        echo 'echo "=================================="' >> ~/release/install.sh
+        echo 'echo "  Installation Complete!"' >> ~/release/install.sh
+        echo 'echo "=================================="' >> ~/release/install.sh
+        echo 'echo "Access: http://192.168.1.20:8080"' >> ~/release/install.sh
         chmod +x ~/release/install.sh
-
-        # Compress
         cd ~
         tar -czf HotspotOS-v1.0-${{ env.DEVICE }}.tar.gz -C release .
 
-    # ============================================
-    # Step 10: Upload artifacts
-    # ============================================
     - name: Upload firmware artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -253,9 +170,6 @@ EOF
         path: ~/HotspotOS-v1.0-*.tar.gz
         if-no-files-found: warn
 
-    # ============================================
-    # Step 11: Create GitHub Release (if tagged)
-    # ============================================
     - name: Create Release
       if: startsWith(github.ref, 'refs/tags/')
       uses: softprops/action-gh-release@v1
